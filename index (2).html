@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engineer Mohamed</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, #000010, #000);
+      color: white;
+      font-family: "Poppins", sans-serif;
+      position: relative;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .phrase {
+      position: absolute;
+      font-size: 1.8rem;
+      text-shadow: 0 0 15px white;
+      opacity: 0;
+      transform: scale(0.8);
+      animation: appear 1.5s forwards;
+      z-index: 10;
+    }
+
+    @keyframes appear {
+      0% {opacity: 0; transform: scale(0.8);}
+      50% {opacity: 1; transform: scale(1);}
+      100% {opacity: 0; transform: scale(1.2);}
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 240px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+      z-index: 20;
+    }
+
+    input, button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 6px;
+      border: none;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    button {
+      cursor: pointer;
+      background: #1e90ff;
+      color: white;
+      font-weight: bold;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+
+    li button {
+      background: #ff5050;
+      width: 25px;
+      height: 25px;
+      font-size: 1rem;
+      border-radius: 50%;
+      padding: 0;
+    }
+
+    small {
+      position: fixed;
+      bottom: 5px;
+      left: 10px;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.7rem;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="space"></canvas>
+
+  <div class="sidebar">
+    <input type="text" id="newPhrase" placeholder="Add a phrase...">
+    <button id="addBtn">Add</button>
+    <ul id="list"></ul>
+  </div>
+
+  <small>من أسطورة الحاسب إلى أسطورة الهندسة</small>
+
+  <script>
+    const canvas = document.getElementById("space");
+    const ctx = canvas.getContext("2d");
+    let stars = [], planets = [], meteors = [];
+
+    function resize() {
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      generateStars();
+      generatePlanets();
+    }
+
+    function generateStars() {
+      stars = Array.from({ length: 150 }, () => ({
+        x: Math.random() * innerWidth,
+        y: Math.random() * innerHeight,
+        r: Math.random() * 1.5,
+        speed: Math.random() * 0.3 + 0.05,
+      }));
+    }
+
+    function generatePlanets() {
+      planets = [
+        { x: 200, y: 200, r: 30, color: "#4b9cd3", angle: 0, orbit: 100 },
+        { x: 600, y: 400, r: 50, color: "#ffcc00", angle: 180, orbit: 160 },
+        { x: 900, y: 250, r: 40, color: "#ff6699", angle: 45, orbit: 130 },
+      ];
+    }
+
+    function drawSpace() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Stars
+      ctx.fillStyle = "white";
+      stars.forEach((s) => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+        s.y += s.speed;
+        if (s.y > innerHeight) s.y = 0;
+      });
+
+      // Planets (rotate)
+      planets.forEach((p) => {
+        const cx = innerWidth / 2;
+        const cy = innerHeight / 2;
+        const px = cx + Math.cos(p.angle) * p.orbit;
+        const py = cy + Math.sin(p.angle) * p.orbit;
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+        ctx.arc(px, py, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        p.angle += 0.002;
+      });
+
+      // Meteors
+      meteors.forEach((m, i) => {
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(m.x - 10, m.y - 30);
+        ctx.stroke();
+        m.x += m.vx;
+        m.y += m.vy;
+        if (m.y > innerHeight || m.x > innerWidth) meteors.splice(i, 1);
+      });
+
+      if (Math.random() < 0.005) {
+        meteors.push({ x: Math.random() * innerWidth, y: 0, vx: 2, vy: 5 });
+      }
+
+      requestAnimationFrame(drawSpace);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    drawSpace();
+
+    // === Phrase logic ===
+    const defaultPhrases = [
+      "I'm the best engineer in the world",
+      "محد قدي",
+      "chemistry + Engineering = Eng.Mohammed",
+    ];
+    let phrases = JSON.parse(localStorage.getItem("phrases")) || defaultPhrases;
+    const list = document.getElementById("list");
+    const newPhraseInput = document.getElementById("newPhrase");
+    const addBtn = document.getElementById("addBtn");
+
+    function savePhrases() {
+      localStorage.setItem("phrases", JSON.stringify(phrases));
+      renderList();
+    }
+
+    function renderList() {
+      list.innerHTML = "";
+      phrases.forEach((p, i) => {
+        const li = document.createElement("li");
+        li.textContent = p;
+        const del = document.createElement("button");
+        del.textContent = "×";
+        del.onclick = () => { phrases.splice(i, 1); savePhrases(); };
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+
+    addBtn.onclick = () => {
+      const val = newPhraseInput.value.trim();
+      if (val) {
+        phrases.push(val);
+        newPhraseInput.value = "";
+        savePhrases();
+      }
+    };
+
+    renderList();
+
+    document.body.addEventListener("click", (e) => {
+      if (e.target.closest(".sidebar")) return;
+      const phrase = document.createElement("div");
+      phrase.className = "phrase";
+      phrase.style.left = e.clientX + "px";
+      phrase.style.top = e.clientY + "px";
+      phrase.textContent =
+        phrases[Math.floor(Math.random() * phrases.length)];
+      document.body.appendChild(phrase);
+      setTimeout(() => phrase.remove(), 2000);
+    });
+  </script>
+</body>
+</html>
